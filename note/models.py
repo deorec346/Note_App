@@ -2,8 +2,6 @@ from django.db import models
 from datetime import datetime
 from user.models import User
 
-# Create your models here.
-
 
 class Note(models.Model):
     title = models.CharField(max_length=50)

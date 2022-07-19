@@ -19,7 +19,8 @@ class UserRegistration(APIView):
         try:
             serializer.is_valid(raise_exception=True)
             serializer.create(request.data)
-
+            # serializer.save()
+            # print(serializer.data)
             return Response({
                 "message": "user login successfully",
                 "data": serializer.data

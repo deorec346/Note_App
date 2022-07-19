@@ -1,5 +1,5 @@
 """
-WSGI config for fundooNotes project.
+WSGI config for fundooNote project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fundooNotes.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'fundooNote.settings')
 
 application = get_wsgi_application()

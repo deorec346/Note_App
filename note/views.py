@@ -30,15 +30,19 @@ class Notes(APIView):
             logging.error(e)
             return Response({'message': str(e)})
 
-    def get(self, request):
+    def get(self, request, note_id):
         try:
-            note = Note.objects.filter(note_id_id=request.data.get("note_id"))
-            serializer = NoteSerializer(note, many=True)
-            return Response({
-                "message": "note found",
-                "data": serializer.data
-            })
+            note = Note.objects.filter(user_id_id=note_id)
+            if len(note) != 0:
+                serializer = NoteSerializer(note, many=True)
 
+                return Response({
+                    "message": "note found",
+                    "data": serializer.data
+                }, 200)
+            return Response({
+                "message": "empty note"
+            }, 200)
         except Exception as e:
             return Response({
                 'message': str(e)
@@ -65,6 +69,7 @@ class Notes(APIView):
 
     def put(self, request):
 
+        global serializer
         try:
             note = Note.objects.get(pk=request.data.get("note_id"))
             serializer = NoteSerializer(note, data=request.data)
