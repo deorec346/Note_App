@@ -12,7 +12,6 @@ logging.basicConfig(filename="views.log", filemode="w")
 
 class Notes(APIView):
 
-    @verify_token
     def post(self, request):
         """
         Registering note
@@ -36,7 +35,6 @@ class Notes(APIView):
             logging.error(e)
             return Response({'message': str(e)})
 
-    @verify_token
     def get(self, request):
         """
             Displaying note details
@@ -51,7 +49,6 @@ class Notes(APIView):
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @verify_token
     def delete(self, request):
         """
             Deleting particular note
@@ -74,7 +71,6 @@ class Notes(APIView):
                 "message": str(e)
             }, 400)
 
-    @verify_token
     def put(self, request):
         """
              Creating note view and performing crud operation
