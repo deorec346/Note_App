@@ -1,15 +1,15 @@
-import json
 import logging
-
 from django.contrib.auth.models import auth
+from django.core.mail import send_mail
+from django.http import HttpResponse
+from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
 from user.models import User
 from user.serializers import UserSerializer
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-
+from .utils import EncodeDecode
+from jwt import ExpiredSignatureError, DecodeError
 logging.basicConfig(filename="views.log", filemode="w")
 
 
@@ -18,23 +18,16 @@ class UserRegistration(APIView):
         serializer = UserSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
-            serializer.create(request.data)
-            # serializer.save()
-            # print(serializer.data)
-            return Response({
-                "message": "user login successfully",
-                "data": serializer.data
-            }, 201)
-        except ValidationError:
-            return Response({
-                'message': serializer.errors
-            }, 400)
+            user = User.objects.create_user(**request.data)
+            token = EncodeDecode().encode_token({"id": user.pk})
+            url = "http://127.0.0.1:8000/user/validate/" + str(token)
+            send_mail("register", url, 'deorec346@gmail.com', [serializer.data['email']], fail_silently=False)
+            print(token)
+            return Response({"message": "data store successfully", "data": {"username": serializer.data}})
 
         except Exception as e:
             logging.error(e)
-            return Response({
-                'message': str(e)
-            }, 400)
+            return Response({'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request):
         try:
@@ -58,14 +51,41 @@ class UserRegistration(APIView):
 class UserLogin(APIView):
 
     def post(self, request):
+        """
+            login existing user with username and password
+        """
         try:
-            user = auth.authenticate(username=request.data.get("username"), password=request.data.get("password"))
+            username = request.data.get("username")
+            password = request.data.get("password")
+            user = auth.authenticate(username=username, password=password)
+            print(user)
             if user is not None:
-                serializer = UserSerializer(user)
-                return Response({"message": "login successfully", "data": serializer.data}, 200)
-            return Response({"message": "user login unsuccessful"}, 400)
+                token = EncodeDecode().encode_token(payload={"user_id": user.pk})
+                return Response({"message": "login successful", "data": {"token": token}}, status=status.HTTP_200_OK)
+            else:
+                return Response({"message": "user login unsuccessful", "data": {}}, status=status.HTTP_401_UNAUTHORIZED)
+
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ValidateToken(APIView):
+
+    def get(self, request, token):
+        """
+            Checking existing token whether it is valid or expired
+        """
+        try:
+            decode_token = EncodeDecode().decode_token(token=token)
+            user = User.objects.get(id=decode_token.get('id'))
+            user.is_verified = True
+            user.save()
+            return Response({"message": "Validate Successfully", "data": user.pk},
+                            status=status.HTTP_201_CREATED)
+        except ExpiredSignatureError:
+            return Response({"message": "token expired"}, status=status.HTTP_401_UNAUTHORIZED)
+        except DecodeError:
+            return Response({"message": "wrong token"}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
             logging.error(e)
-            return Response({
-                "message": str(e)
-            }, 400)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)

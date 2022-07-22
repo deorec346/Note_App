@@ -1,16 +1,22 @@
 import logging
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from django.core.exceptions import ObjectDoesNotExist
 from .models import Note
 from .serializers import NoteSerializer
-
+from .utils import verify_token
 logging.basicConfig(filename="views.log", filemode="w")
 
 
 class Notes(APIView):
+
+    @verify_token
     def post(self, request):
+        """
+        Registering note
+        """
         serializer = NoteSerializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
@@ -30,25 +36,26 @@ class Notes(APIView):
             logging.error(e)
             return Response({'message': str(e)})
 
-    def get(self, request, note_id):
+    @verify_token
+    def get(self, request):
+        """
+            Displaying note details
+        """
         try:
-            note = Note.objects.filter(user_id_id=note_id)
-            if len(note) != 0:
-                serializer = NoteSerializer(note, many=True)
-
-                return Response({
-                    "message": "note found",
-                    "data": serializer.data
-                }, 200)
-            return Response({
-                "message": "empty note"
-            }, 200)
+            note = Note.objects.filter(user_id=request.data.get('user_id'))
+            serializer = NoteSerializer(note, many=True)
+            print(serializer.data)
+            return Response({"message": "note found", "data": serializer.data}, status=status.HTTP_200_OK)
+        except note.DoesNotExist as dne:
+            return Response({"message": "note not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({
-                'message': str(e)
-            }, 400)
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @verify_token
     def delete(self, request):
+        """
+            Deleting particular note
+        """
         try:
             Note.objects.get(id=request.data.get("note_id")).delete()
             return Response({
@@ -67,7 +74,11 @@ class Notes(APIView):
                 "message": str(e)
             }, 400)
 
+    @verify_token
     def put(self, request):
+        """
+             Creating note view and performing crud operation
+         """
 
         global serializer
         try:
