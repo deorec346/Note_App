@@ -33,7 +33,7 @@ ALLOWED_HOSTS = []
 # EMAIL_USE_SSL = True
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-
+USE_TZ = False
 # Application definition
 
 INSTALLED_APPS = [

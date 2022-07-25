@@ -22,7 +22,6 @@ class UserRegistration(APIView):
             token = EncodeDecode().encode_token({"id": user.pk})
             url = "http://127.0.0.1:8000/user/validate/" + str(token)
             send_mail("register", url, 'deorec346@gmail.com', [serializer.data['email']], fail_silently=False)
-            print(token)
             return Response({"message": "data store successfully", "data": {"username": serializer.data}})
 
         except Exception as e:
@@ -58,7 +57,6 @@ class UserLogin(APIView):
             username = request.data.get("username")
             password = request.data.get("password")
             user = auth.authenticate(username=username, password=password)
-            print(user)
             if user is not None:
                 token = EncodeDecode().encode_token(payload={"user_id": user.pk})
                 return Response({"message": "login successful", "data": {"token": token}}, status=status.HTTP_200_OK)

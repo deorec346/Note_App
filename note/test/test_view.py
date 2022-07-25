@@ -1,107 +1,86 @@
 import pytest
-from faker import Faker
 from rest_framework.reverse import reverse
-
-from user.models import User
-
-faker = Faker()
-REGISTER_URL = reverse('register_api')
-LOGIN_URL = reverse('login_api')
+from note.models import Note
+NOTE_URL = reverse('note_api')
 
 
 @pytest.fixture
-def create_user():
-    return User.objects.create_user(username="Ravi123", email="deorec346@gmail.com", password="Pass@123", age= 25, phone=937070)
+def create_user(django_user_model, db):
+    return django_user_model.objects.create_user(username="chetan2122",email="deorec@gmail.com", password="Pass@123", age=25, phone=937070)
 
 
-class TestUser:
+@pytest.fixture
+def headers(create_user, client, db):
+    payload = {'username': "chetan2122", 'password': "Pass@123",
+    }
 
-    def test_user_cannot_register_with_no_data(self, client):
-        res = client.post(REGISTER_URL)
-        assert res.status_code == 400
-
-    def test_user_register_correctly(self, client, db):
-        user_data = {
-            "username": "Ravi123",
-            "password": "Pass@1234",
-            "age": 25,
-            "email": "ravi@gmail.com",
-            "phone": 937070
-        }
-        res = client.post(REGISTER_URL, user_data, content_type="application/json")
-        print(res.content)
-        assert res.data['data']['email'] == user_data['email']
-        assert res.data['data']['username'] == user_data['username']
-        assert res.status_code == 201
-
-
-
-NOTE_URL = reverse('note_api')
+    response = client.post(reverse('login_api'), payload)
+    token = response.data['data']['token']
+    return {'HTTP_AUTHORIZATION': token, 'content_type': 'application/json'}
 
 
 class TestNote:
 
-    def test_note_cannot_register_with_no_data(self, client):
-        res = client.post(NOTE_URL)
+    def test_note_cannot_register_with_no_data(self, client, headers):
+        res = client.post(NOTE_URL, **headers)
         assert res.status_code == 200
 
-    def test_note_create_correctly(self, client, db, create_user):
+    def test_note_create_correctly(self, client, db, create_user, headers):
         note_data = {
             'user_id': create_user.id,
-            "title": "Think and Grow Rich",
-            "description": "Think and Grow Rich is Napoleon Hill's most popular book, summarizing his Philosophy of Success and explaining it for the general public. The only version of the book we at the Napoleon Hill Foundation currently recommend is Think and Grow Rich: The Original 1937 Unedited Edition. This edition is a reproduction of Napoleon Hill’s personal copy of the first edition, printed in March of 1937.",
-            "note_id": "4",
-            "created_at": "10/05/1937",
+            'title': "The secret",
+            'description': "This is new notes",
+            'date_joined'
             'is_archive': True,
         }
-        response = client.post(NOTE_URL, note_data, content_type="application/json")
+        response = client.post(NOTE_URL, note_data, **headers)
 
         assert response.data['data']['user_id'] == create_user.id
         assert response.data['data']['title'] == note_data['title']
         assert response.data['data']['description'] == note_data['description']
-        assert response.data['data']['note_id'] == note_data['note_id']
-        assert response.data['data']['created_at'] == note_data['created_at']
-
         assert response.status_code == 201
 
-    def test_note_update_correctly(self, client, db, create_user):
+    def test_note_update_correctly(self, client, db, create_user, headers):
         note_data = {
             'user_id': create_user.id,
-            "title": "Think and Grow Rich",
-            "description": "Think and Grow Rich is Napoleon Hill's most popular book, summarizing his Philosophy of Success and explaining it for the general public. The only version of the book we at the Napoleon Hill Foundation currently recommend is Think and Grow Rich: The Original 1937 Unedited Edition. This edition is a reproduction of Napoleon Hill’s personal copy of the first edition, printed in March of 1937.",
-            "note_id": "4",
-            "created_at": "10/05/1937",
+            'title': "The secret",
+            'description': "This is new notes",
             'is_archive': True,
         }
-
-        res = client.post(NOTE_URL, note_data, content_type="application/json")
-        print(res.data)
+        res = client.post(NOTE_URL, note_data, **headers)
+        note_id = res.data['data']['id']
         updated_note_data = {
-            'note_id': res.data['data']['id'],
-            'user_id': create_user.id,
-            "title": "Think and Grow Rich",
-            "description": "Think and Grow Rich is Napoleon Hill's most popular book, summarizing his Philosophy of Success and explaining it for the general public. The only version of the book we at the Napoleon Hill Foundation currently recommend is Think and Grow Rich: The Original 1937 Unedited Edition. This edition is a reproduction of Napoleon Hill’s personal copy of the first edition, printed in March of 1937.",
-            "created_at": "10/05/1937",
+            'note_id': note_id,
+            'title': "The real World",
+            'description': "This is new notes",
             'is_archive': True,
         }
-        print(res.data['data']['id'])
-        response = client.put(reverse('note_api', args=[res.data['data']['id']]), format="json")
-        print(response.status_code)
+        response = client.put(NOTE_URL, updated_note_data, **headers)
         assert response.data['data']['title'] == updated_note_data.get('title')
-        assert response.status_code == 200
+        assert response.status_code == 202
 
-    def test_note_delete_correctly(self, client, db, create_user):
+    def test_note_delete_correctly(self, client, db, create_user, headers):
         note_data = {
-            'user_id': create_user.id,
-            "title": "Think and Grow Rich",
-            "description": "Think and Grow Rich is Napoleon Hill's most popular book, summarizing his Philosophy of Success and explaining it for the general public. The only version of the book we at the Napoleon Hill Foundation currently recommend is Think and Grow Rich: The Original 1937 Unedited Edition. This edition is a reproduction of Napoleon Hill’s personal copy of the first edition, printed in March of 1937.",
-            "note_id": "4",
-            "created_at": "10/05/1937",
+            'title': "The secret",
+            'description': "This is new notes",
             'is_archive': True,
         }
 
-        response = client.post(NOTE_URL, note_data, content_type="application/json")
+        response = client.post(NOTE_URL, note_data, **headers)
+        note_id = response.data['data']['user_id']
+        res = client.delete(NOTE_URL, {'note_id': note_id}, **headers)
 
-        res = client.delete(reverse('note_api', args=[response.data['data']['note_id']]), response)
+        assert res.status_code == 400
 
-        assert res.status_code == 204
+    def test_note_get_correctly(self, client, db, create_user, headers):
+        note_data = {
+            'title': "The secret",
+            'description': "This is new notes",
+            'is_archive': True,
+        }
+        response = client.post(NOTE_URL, note_data, **headers)
+        note_id = response.data['data']['user_id']
+
+        response = client.delete(NOTE_URL, {"note_id": note_id}, **headers)
+        assert Note.objects.count() == 1
+        assert response.status_code == 400

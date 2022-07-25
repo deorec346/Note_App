@@ -42,9 +42,8 @@ class Notes(APIView):
             Displaying note details
         """
         try:
-            note = Note.objects.filter(user_id=request.data.get('user_id'))
+            note = Note.objects.filter(user_id=request.data.get('id'))
             serializer = NoteSerializer(note, many=True)
-            print(serializer.data)
             return Response({"message": "note found", "data": serializer.data}, status=status.HTTP_200_OK)
         except note.DoesNotExist as dne:
             return Response({"message": "note not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -89,7 +88,7 @@ class Notes(APIView):
             return Response({
                 "message": "user update successfully",
                 "data": serializer.data
-            }, 200)
+            }, status.HTTP_202_ACCEPTED)
 
         except ObjectDoesNotExist:
             return Response({

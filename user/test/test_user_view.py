@@ -28,4 +28,4 @@ class TestUser:
         url = reverse('login_api')
         login_data = {'username': 'Ravi123', 'password': 'Pass@13'}
         respone = client.post(url, login_data)
-        assert respone.status_code == 400
+        assert respone.status_code == 401
